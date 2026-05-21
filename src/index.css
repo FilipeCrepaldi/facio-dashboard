@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Facio brand palette */
+  --color-facio-blue: #3f6ae3;
+  --color-menta: #3fe1b6;
+  --color-carbono: #1e252f;
+  --color-grafite: #333333;
+  --color-offwhite: #e5e5e5;
+  --color-sky: #75a7fa;
+  --color-coral: #e13f6a;
+  --color-sun: #fec553;
+
+  /* Semantic tokens — light */
+  --color-bg: #f5f5f5;
+  --color-sidebar: #e5e5e5;
+  --color-surface: #ffffff;
+  --color-text: #1e252f;
+  --color-text-muted: #666660;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-accent: #3f6ae3;
+
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Semantic tokens — dark override */
+.dark {
+  --color-bg: #191919;
+  --color-sidebar: #1e252f;
+  --color-surface: #262626;
+  --color-text: #e8e8e6;
+  --color-text-muted: #9b9b96;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-accent: #3f6ae3;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
