@@ -1,5 +1,8 @@
+import { IconArrowLeft } from "@tabler/icons-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { EditButton } from "./components/EditButton";
+import { Logo } from "./components/Logo";
 import { PageContent } from "./components/PageContent";
 import { Sidebar } from "./components/Sidebar";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -9,8 +12,19 @@ import { useSections } from "./hooks/useSections";
 import { useTheme } from "./hooks/useTheme";
 import { useWorkspace } from "./hooks/useWorkspace";
 import { isSupabaseConfigured } from "./lib/supabase";
+import { CollectionTree } from "./pages/CollectionTree";
 import { Home } from "./pages/Home";
+import { Launcher } from "./pages/Launcher";
 import { SectionPage } from "./pages/SectionPage";
+
+type View = "launcher" | "dashboard" | "tree";
+
+const pageTransition = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -12 },
+  transition: { duration: 0.28, ease: "easeOut" as const },
+};
 
 function App() {
   const { theme, toggle } = useTheme();
@@ -20,79 +34,143 @@ function App() {
     useSections();
   const { links } = useLinks();
 
+  const [view, setView] = useState<View>("launcher");
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
 
   const activeSection =
     sections.find((s) => s.id === activeSectionId) ?? null;
-
   const workspaceName = workspace?.name ?? "Facio";
 
+  const goLauncher = () => {
+    setView("launcher");
+    setEditing(false);
+  };
+
   return (
-    <div className="flex h-full w-full bg-[var(--color-bg)] text-[var(--color-text)]">
-      <Sidebar
-        workspaceName={workspaceName}
-        groups={groups}
-        sections={sections}
-        activeSectionId={activeSectionId}
-        editing={editing}
-        onSelectHome={() => setActiveSectionId(null)}
-        onSelectSection={setActiveSectionId}
-        onRenameWorkspace={renameWorkspace}
-        onCreateGroup={createGroup}
-        onRenameGroup={renameGroup}
-        onDeleteGroup={deleteGroup}
-        onCreateSection={createSection}
-        onUpdateSection={(id, values) => updateSection(id, values)}
-        onDeleteSection={deleteSection}
-      />
-
-      <div className="flex flex-1 flex-col">
-        {!isSupabaseConfigured ? (
-          <div className="border-b border-[var(--color-coral)]/30 bg-[var(--color-coral)]/10 px-6 py-2 text-xs text-[var(--color-coral)]">
-            Supabase não configurado. Preencha <code>.env</code> com{" "}
-            <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code>.
+    <div className="flex h-full w-full flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
+      <header className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-sidebar)] px-4 py-2">
+        {view === "launcher" ? (
+          <div className="flex items-center gap-2">
+            <Logo size={24} />
+            <span className="text-sm font-medium text-[var(--color-text)]">
+              {workspaceName}
+            </span>
           </div>
-        ) : null}
-
-        {activeSection ? (
-          <PageContent
-            title={activeSection.name}
-            description={activeSection.description}
-            actions={
-              <>
-                <EditButton
-                  editing={editing}
-                  onToggle={() => setEditing((v) => !v)}
-                />
-                <ThemeToggle theme={theme} onToggle={toggle} />
-              </>
-            }
-          >
-            <SectionPage section={activeSection} links={links} />
-          </PageContent>
         ) : (
-          <PageContent
-            title={workspaceName}
-            description="Dashboard de Operations — links, processos e instruções do time."
-            actions={
-              <>
-                <EditButton
-                  editing={editing}
-                  onToggle={() => setEditing((v) => !v)}
-                />
-                <ThemeToggle theme={theme} onToggle={toggle} />
-              </>
-            }
+          <button
+            type="button"
+            onClick={goLauncher}
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-text)]"
           >
-            <Home
-              groups={groups}
-              sections={sections}
-              links={links}
-              onSelectSection={setActiveSectionId}
-            />
-          </PageContent>
+            <IconArrowLeft size={14} stroke={2} />
+            Início
+          </button>
         )}
+        <ThemeToggle theme={theme} onToggle={toggle} />
+      </header>
+
+      <div className="relative flex flex-1 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {view === "launcher" ? (
+            <motion.div
+              key="launcher"
+              {...pageTransition}
+              className="flex flex-1 overflow-y-auto"
+            >
+              <Launcher workspaceName={workspaceName} onSelect={setView} />
+            </motion.div>
+          ) : null}
+
+          {view === "tree" ? (
+            <motion.main
+              key="tree"
+              {...pageTransition}
+              className="flex-1 overflow-y-auto"
+            >
+              <div className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-8">
+                <header>
+                  <h1 className="text-2xl font-semibold text-[var(--color-text)]">
+                    Árvore de Cobrança
+                  </h1>
+                  <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                    Responda a pergunta abaixo e o fluxo guia até a ação
+                    recomendada.
+                  </p>
+                </header>
+                <CollectionTree />
+              </div>
+            </motion.main>
+          ) : null}
+
+          {view === "dashboard" ? (
+            <motion.div
+              key="dashboard"
+              {...pageTransition}
+              className="flex flex-1 overflow-hidden"
+            >
+              <Sidebar
+                workspaceName={workspaceName}
+                groups={groups}
+                sections={sections}
+                activeSectionId={activeSectionId}
+                editing={editing}
+                onSelectHome={() => setActiveSectionId(null)}
+                onSelectSection={setActiveSectionId}
+                onRenameWorkspace={renameWorkspace}
+                onCreateGroup={createGroup}
+                onRenameGroup={renameGroup}
+                onDeleteGroup={deleteGroup}
+                onCreateSection={createSection}
+                onUpdateSection={(id, values) => updateSection(id, values)}
+                onDeleteSection={deleteSection}
+              />
+
+              <div className="flex flex-1 flex-col">
+                {!isSupabaseConfigured ? (
+                  <div className="border-b border-[var(--color-coral)]/30 bg-[var(--color-coral)]/10 px-6 py-2 text-xs text-[var(--color-coral)]">
+                    Supabase não configurado. Preencha <code>.env</code> com{" "}
+                    <code>VITE_SUPABASE_URL</code> e{" "}
+                    <code>VITE_SUPABASE_ANON_KEY</code>.
+                  </div>
+                ) : null}
+
+                {activeSection ? (
+                  <PageContent
+                    title={activeSection.name}
+                    description={activeSection.description}
+                    actions={
+                      <EditButton
+                        editing={editing}
+                        onToggle={() => setEditing((v) => !v)}
+                      />
+                    }
+                  >
+                    <SectionPage section={activeSection} links={links} />
+                  </PageContent>
+                ) : (
+                  <PageContent
+                    title={workspaceName}
+                    description="Dashboard de Operations — links, processos e instruções do time."
+                    actions={
+                      <EditButton
+                        editing={editing}
+                        onToggle={() => setEditing((v) => !v)}
+                      />
+                    }
+                  >
+                    <Home
+                      groups={groups}
+                      sections={sections}
+                      links={links}
+                      onSelectSection={setActiveSectionId}
+                    />
+                  </PageContent>
+                )}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     </div>
   );
