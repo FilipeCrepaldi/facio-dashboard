@@ -1,3 +1,4 @@
+import { Icon } from "../components/Icon";
 import type { Group, Link, Section } from "../types";
 
 type Props = {
@@ -39,11 +40,7 @@ export function Home({ groups, sections, links, onSelectSection }: Props) {
                     className="flex flex-col gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-left transition hover:border-[var(--color-accent)]"
                   >
                     <div className="flex items-center gap-2">
-                      {section.icon ? (
-                        <span aria-hidden className="text-lg leading-none">
-                          {section.icon}
-                        </span>
-                      ) : null}
+                      <Icon name={section.icon} size={18} />
                       <span className="font-medium text-[var(--color-text)]">
                         {section.name}
                       </span>

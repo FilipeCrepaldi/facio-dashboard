@@ -14,9 +14,10 @@ import { SectionPage } from "./pages/SectionPage";
 
 function App() {
   const { theme, toggle } = useTheme();
-  const { workspace } = useWorkspace();
-  const { groups } = useGroups();
-  const { sections } = useSections();
+  const { workspace, updateName: renameWorkspace } = useWorkspace();
+  const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
+  const { sections, createSection, updateSection, deleteSection } =
+    useSections();
   const { links } = useLinks();
 
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
@@ -34,8 +35,16 @@ function App() {
         groups={groups}
         sections={sections}
         activeSectionId={activeSectionId}
+        editing={editing}
         onSelectHome={() => setActiveSectionId(null)}
         onSelectSection={setActiveSectionId}
+        onRenameWorkspace={renameWorkspace}
+        onCreateGroup={createGroup}
+        onRenameGroup={renameGroup}
+        onDeleteGroup={deleteGroup}
+        onCreateSection={createSection}
+        onUpdateSection={(id, values) => updateSection(id, values)}
+        onDeleteSection={deleteSection}
       />
 
       <div className="flex flex-1 flex-col">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Workspace } from "../types";
 
@@ -41,5 +41,26 @@ export function useWorkspace() {
     };
   }, []);
 
-  return { workspace, loading, error };
+  const updateName = useCallback(
+    async (name: string) => {
+      const trimmed = name.trim();
+      if (!workspace || !trimmed || trimmed === workspace.name) return;
+
+      const previous = workspace;
+      setWorkspace({ ...workspace, name: trimmed });
+
+      const { error } = await supabase
+        .from("workspace")
+        .update({ name: trimmed })
+        .eq("id", workspace.id);
+
+      if (error) {
+        setWorkspace(previous);
+        setError(error.message);
+      }
+    },
+    [workspace]
+  );
+
+  return { workspace, loading, error, updateName };
 }

@@ -1,4 +1,5 @@
 import type { Link } from "../types";
+import { Icon } from "./Icon";
 
 type Props = {
   link: Link;
@@ -13,16 +14,7 @@ export function ItemRow({ link }: Props) {
       className="group flex items-center justify-between gap-3 rounded-md border border-transparent px-3 py-2 text-sm text-[var(--color-text)] transition hover:border-[var(--color-border)] hover:bg-[var(--color-surface)]"
     >
       <span className="flex min-w-0 items-center gap-2">
-        {link.icon ? (
-          <span aria-hidden className="text-base leading-none">
-            {link.icon}
-          </span>
-        ) : (
-          <span
-            aria-hidden
-            className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-text-muted)]"
-          />
-        )}
+        <Icon name={link.icon} size={16} />
         <span className="truncate">{link.label}</span>
       </span>
       <svg
