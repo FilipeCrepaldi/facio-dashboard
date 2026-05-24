@@ -7,7 +7,7 @@ import {
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { FlowEditor } from "../editor/FlowEditor";
-import { useFlow, type FlowNode } from "../hooks/useFlow";
+import { useFlow, type FlowNode, type FlowOption } from "../hooks/useFlow";
 
 const brl = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -44,7 +44,7 @@ function buildSteps(
   let depth = 0;
 
   while (currentId) {
-    const node = nodes[currentId];
+    const node: FlowNode | undefined = nodes[currentId];
     if (!node) break;
 
     if (node.type === "result") {
@@ -53,8 +53,8 @@ function buildSteps(
     }
 
     const chosenId = path[depth];
-    const chosen = chosenId
-      ? node.options.find((o) => o.next === chosenId)
+    const chosen: FlowOption | undefined = chosenId
+      ? node.options.find((o: FlowOption) => o.next === chosenId)
       : undefined;
 
     steps.push({

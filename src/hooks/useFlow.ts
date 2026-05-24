@@ -187,18 +187,18 @@ export function useFlow() {
       const prefix = input.type === "question" ? "q_" : "r_";
       const id = `${prefix}${shortId()}`;
 
-      const row =
+      const { error } =
         input.type === "question"
-          ? {
+          ? await supabase.from("flow_nodes").insert({
               id,
-              type: "question" as const,
+              type: "question",
               title,
               subtitle: input.subtitle?.trim() || null,
               is_root: false,
-            }
-          : {
+            })
+          : await supabase.from("flow_nodes").insert({
               id,
-              type: "result" as const,
+              type: "result",
               title,
               description: input.description?.trim() || null,
               detail: input.detail?.trim() || null,
@@ -206,9 +206,8 @@ export function useFlow() {
               multiplier: input.multiplier ?? null,
               multiplier_label: input.multiplierLabel?.trim() || null,
               is_root: false,
-            };
+            });
 
-      const { error } = await supabase.from("flow_nodes").insert(row);
       if (error) return { error: error.message };
       return { id };
     },
