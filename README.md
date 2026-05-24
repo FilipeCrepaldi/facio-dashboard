@@ -5,7 +5,7 @@
 Painel interno da Facio que reúne duas ferramentas usadas pelo time de Operations:
 
 1. **Dashboard de Operações** — centraliza links, processos e instruções (grupos, seções e links editáveis).
-2. **Árvore de Cobrança** — visualiza o fluxo de decisão de inadimplência (quantos dias em atraso → qual ação tomar).
+2. **Árvore de Cobrança** — fluxo conversacional que guia o atendente pela decisão de inadimplência (pergunta → botões de resposta → próxima pergunta → ação final). Editável por gestão sem mexer em código.
 
 A tela inicial é um **launcher** com as duas opções no centro. Hospedado na Cloudflare Pages e incorporado via `/embed` no Notion. O controle de acesso é feito pelo próprio Notion — quem tem acesso à página já é da equipe e pode visualizar e editar.
 
@@ -36,7 +36,7 @@ npm run dev
 
 Pré-requisitos:
 - `.env` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`
-- Migrações `supabase/0001_initial_schema.sql`, `0002_seed.sql` e `0003_replace_emoji_icons.sql` aplicadas no Supabase Studio
+- Migrações `supabase/0001_initial_schema.sql`, `0002_seed.sql`, `0003_replace_emoji_icons.sql`, `0004_collection_flow.sql` e `0005_collection_flow_seed.sql` aplicadas no Supabase Studio (ordem importa)
 
 ---
 
@@ -74,6 +74,10 @@ Links
 
 Segunda ferramenta do painel. Representa o fluxo de decisão usado pelo time de cobrança da Facio: dado o número de dias de atraso de um cliente, decide qual ação tomar.
 
+**Formato de exibição:** Conversational UI linear. Em vez de um diagrama com galhos, o atendente vê **uma pergunta por vez** em formato de card de chat, escolhe a resposta entre botões e a próxima pergunta aparece logo abaixo. Quando o caminho chega num nó terminal, mostra a ação recomendada destacada. Botões "voltar uma etapa" e "recomeçar" sempre disponíveis.
+
+**Editabilidade:** Todo o conteúdo — texto das perguntas, botões de resposta, próximos passos, ações terminais e descontos — é alterado por um painel admin dentro da própria ferramenta. Sem PR no código. Pessoa responsável de Operations mantém o fluxo.
+
 **Ações terminais possíveis:**
 - Gerar boleto (`charges` no Retool) — atraso 1-28 dias com aceite de pagamento parcial
 - Direcionar para parcelamento pelo App em até 4x — atraso de 30 dias
@@ -89,94 +93,16 @@ Segunda ferramenta do painel. Representa o fluxo de decisão usado pelo time de 
 
 > ⚠️ A última linha tem inconsistência aritmética no source original (70% off deveria ser × 0,30, mas o flowchart diz × 0,20). Tratar como bug a confirmar com Operations antes do deploy do wizard.
 
-**Modos de uso pretendidos:**
-- **Visualização** — qualquer pessoa vê o fluxo completo como diagrama
-- **Wizard** — atendente responde "quantos dias em atraso?" e a árvore guia até a ação correta
-- **Edição** (futuro) — gestão atualiza faixas e descontos sem mexer em código
+### Fonte canônica do fluxo
 
-### Source do flowchart (Mermaid)
+O fluxo vive nas tabelas Supabase **`flow_nodes`** e **`flow_options`** (esquema na seção "Modelo de dados"). O hook [`useFlow()`](src/hooks/useFlow.ts) lê as duas tabelas, combina em `Record<string, FlowNode>` e assina realtime — qualquer alteração no banco (manual no Studio ou pelo painel admin da Sprint 17) reflete na UI sem refresh.
 
-Fonte canônica do fluxo. Será movida para `src/data/collectionFlow.ts` na Sprint 12.
+Tipos no front (em `src/hooks/useFlow.ts`):
 
-```mermaid
-flowchart TD
-  nd8906283_0088_45f4_81ee_4b93c348a9bc["Cálculo = Valor da contratação * 0,90"]
-  n42241f61_4c4d_4ed9_bbfb_f7a354fa7aa0["Aceitou seguir com o pagamento parcial?"]
-  n97e5592e_3855_4e6d_a191_4793ac867749["Quantos dias em atraso?"]
-  n7cf69e99_a37f_41d6_8a95_61d8fbb54156["Escolha uma das opções"]
-  n7473f25c_0f10_45cf_9820_fd2e9d71a7b1["Desconto 10%"]
-  n227197ca_63a6_4b1c_adb2_325198c5877f["Cálculo = Valor da contratação * 0,80"]
-  n0faa330d_ed47_4f0e_babb_1d576e59b3d7["Cálculo = Valor da contratação * 0,50"]
-  ned0eabcf_a2f1_4bc6_9c1d_4451dac7c0a1["Desconto 70%"]
-  n12d56a7a_7561_4a71_8ef1_b60419582032["Cálculo = Valor da contratação * 0,20"]
-  nb76eb52d_b19c_4e80_9810_6379f8048f00["Sim. Gerar boleto em #quot;charges no retool#quot; do valor combinado"]
-  n2b3bc598_623f_49cb_874a_69d6bca8dc4c["Seguir a proposta de pagamentos parciais - Boleto"]
-  nbe9ec4df_a3fb_4075_ad53_1657297c3836["Atraso entre 1 e 28 dias"]
-  n415c1181_a9bd_4f75_9f50_bf0a7e087814["Direcionar para o parcelamento pelo App em até 4 vezes"]
-  n32bc43b3_3b84_420d_b889_a8a7fb03df79["Desconto 20%"]
-  n433cc8c3_29e8_405d_9480_4243dc9c77b7["Desconto 50%"]
-  n3322b9c4_bdcd_41eb_825b_57c92afb717b["Desconto 30%"]
-  n5d866234_e4eb_4a53_be09_4e679780ff47["60 até 89"]
-  n1a38ab5b_7ed4_4cd7_acdf_f026538c5754["Cálculo = Valor da contratação * 0,70"]
-  n1d9cb245_5994_4cf5_af70_61cde80c3eb7["90 até 119"]
-  n10f63801_a42c_43f1_987d_024897e496f6["30 dias de atraso"]
-  n41393af6_a70b_44a9_930e_c8c0924c2275["Não"]
-  n6d982f6c_cb61_4ad1_90a0_81dfcd6d5293["120 até 149"]
-  n2f5c01a7_65cb_4a3e_ba60_4d22a0ae60b5["Acima de 60 dias"]
-  nf8b134aa_a1f2_4467_889a_3e354a2ee7f9["150 até 179"]
-  n19e0a104_a85b_49da_bcd0_773e8d0a5dc1["Acima de 180"]
+- `question` — texto da pergunta + lista de opções (cada opção tem `label` e aponta para o `next`)
+- `result` — ação terminal (com `tone` para destaque visual e `multiplier` opcional p/ calcular valor com desconto)
 
-  n7473f25c_0f10_45cf_9820_fd2e9d71a7b1 --> nd8906283_0088_45f4_81ee_4b93c348a9bc
-  n2b3bc598_623f_49cb_874a_69d6bca8dc4c --> n42241f61_4c4d_4ed9_bbfb_f7a354fa7aa0
-  n2f5c01a7_65cb_4a3e_ba60_4d22a0ae60b5 --> n7cf69e99_a37f_41d6_8a95_61d8fbb54156
-  n5d866234_e4eb_4a53_be09_4e679780ff47 --> n7473f25c_0f10_45cf_9820_fd2e9d71a7b1
-  n32bc43b3_3b84_420d_b889_a8a7fb03df79 --> n227197ca_63a6_4b1c_adb2_325198c5877f
-  n433cc8c3_29e8_405d_9480_4243dc9c77b7 --> n0faa330d_ed47_4f0e_babb_1d576e59b3d7
-  n19e0a104_a85b_49da_bcd0_773e8d0a5dc1 --> ned0eabcf_a2f1_4bc6_9c1d_4451dac7c0a1
-  ned0eabcf_a2f1_4bc6_9c1d_4451dac7c0a1 --> n12d56a7a_7561_4a71_8ef1_b60419582032
-  n42241f61_4c4d_4ed9_bbfb_f7a354fa7aa0 --> nb76eb52d_b19c_4e80_9810_6379f8048f00
-  nbe9ec4df_a3fb_4075_ad53_1657297c3836 --> n2b3bc598_623f_49cb_874a_69d6bca8dc4c
-  n97e5592e_3855_4e6d_a191_4793ac867749 --> nbe9ec4df_a3fb_4075_ad53_1657297c3836
-  n10f63801_a42c_43f1_987d_024897e496f6 ==> n415c1181_a9bd_4f75_9f50_bf0a7e087814
-  n1d9cb245_5994_4cf5_af70_61cde80c3eb7 --> n32bc43b3_3b84_420d_b889_a8a7fb03df79
-  nf8b134aa_a1f2_4467_889a_3e354a2ee7f9 --> n433cc8c3_29e8_405d_9480_4243dc9c77b7
-  n6d982f6c_cb61_4ad1_90a0_81dfcd6d5293 --> n3322b9c4_bdcd_41eb_825b_57c92afb717b
-  n7cf69e99_a37f_41d6_8a95_61d8fbb54156 --> n5d866234_e4eb_4a53_be09_4e679780ff47
-  n3322b9c4_bdcd_41eb_825b_57c92afb717b --> n1a38ab5b_7ed4_4cd7_acdf_f026538c5754
-  n7cf69e99_a37f_41d6_8a95_61d8fbb54156 --> n1d9cb245_5994_4cf5_af70_61cde80c3eb7
-  n97e5592e_3855_4e6d_a191_4793ac867749 ==> n10f63801_a42c_43f1_987d_024897e496f6
-  n42241f61_4c4d_4ed9_bbfb_f7a354fa7aa0 --> n41393af6_a70b_44a9_930e_c8c0924c2275
-  n7cf69e99_a37f_41d6_8a95_61d8fbb54156 --> n6d982f6c_cb61_4ad1_90a0_81dfcd6d5293
-  n97e5592e_3855_4e6d_a191_4793ac867749 --> n2f5c01a7_65cb_4a3e_ba60_4d22a0ae60b5
-  n7cf69e99_a37f_41d6_8a95_61d8fbb54156 --> nf8b134aa_a1f2_4467_889a_3e354a2ee7f9
-  n7cf69e99_a37f_41d6_8a95_61d8fbb54156 --> n19e0a104_a85b_49da_bcd0_773e8d0a5dc1
-
-  style nd8906283_0088_45f4_81ee_4b93c348a9bc fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n42241f61_4c4d_4ed9_bbfb_f7a354fa7aa0 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n97e5592e_3855_4e6d_a191_4793ac867749 fill:#ffffff,stroke:#6366f1,color:#111827,stroke-width:2px
-  style n7cf69e99_a37f_41d6_8a95_61d8fbb54156 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n7473f25c_0f10_45cf_9820_fd2e9d71a7b1 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n227197ca_63a6_4b1c_adb2_325198c5877f fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n0faa330d_ed47_4f0e_babb_1d576e59b3d7 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style ned0eabcf_a2f1_4bc6_9c1d_4451dac7c0a1 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n12d56a7a_7561_4a71_8ef1_b60419582032 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style nb76eb52d_b19c_4e80_9810_6379f8048f00 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n2b3bc598_623f_49cb_874a_69d6bca8dc4c fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style nbe9ec4df_a3fb_4075_ad53_1657297c3836 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n415c1181_a9bd_4f75_9f50_bf0a7e087814 fill:#dcfce7,stroke:#16a34a,color:#14532d,stroke-width:3px
-  style n32bc43b3_3b84_420d_b889_a8a7fb03df79 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n433cc8c3_29e8_405d_9480_4243dc9c77b7 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n3322b9c4_bdcd_41eb_825b_57c92afb717b fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n5d866234_e4eb_4a53_be09_4e679780ff47 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n1a38ab5b_7ed4_4cd7_acdf_f026538c5754 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n1d9cb245_5994_4cf5_af70_61cde80c3eb7 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n10f63801_a42c_43f1_987d_024897e496f6 fill:#ffffff,stroke:#6366f1,color:#111827,stroke-width:2px
-  style n41393af6_a70b_44a9_930e_c8c0924c2275 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n6d982f6c_cb61_4ad1_90a0_81dfcd6d5293 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n2f5c01a7_65cb_4a3e_ba60_4d22a0ae60b5 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style nf8b134aa_a1f2_4467_889a_3e354a2ee7f9 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-  style n19e0a104_a85b_49da_bcd0_773e8d0a5dc1 fill:#f9fafb,stroke:#e5e7eb,color:#9ca3af,stroke-width:1px
-```
+O conteúdo inicial é semeado pela migração [`supabase/0005_collection_flow_seed.sql`](supabase/0005_collection_flow_seed.sql).
 
 ---
 
@@ -222,10 +148,13 @@ facio-dashboard/
 │   │   ├── NewGroupButton.tsx     # Botão "+ Novo grupo" da sidebar
 │   │   ├── NewSectionButton.tsx   # Botão "+ Nova seção" por grupo
 │   │   ├── SectionEditor.tsx      # Modal completo (nome, ícone, descrição, grupo, deletar)
-│   │   └── LinkEditor.tsx         # (sprint 6) Criar/editar/deletar links
+│   │   ├── LinkEditor.tsx         # (sprint 6) Criar/editar/deletar links
+│   │   └── FlowEditor.tsx         # Painel admin da Árvore (lista de nós + form + toasts)
 │   ├── pages/
-│   │   ├── Home.tsx               # Dashboard com os cards
-│   │   └── SectionPage.tsx        # Página genérica de seção
+│   │   ├── Launcher.tsx           # Tela inicial com os 2 cards (Dashboard / Árvore)
+│   │   ├── Home.tsx               # Dashboard com os cards de seções
+│   │   ├── SectionPage.tsx        # Página genérica de seção
+│   │   └── CollectionTree.tsx     # Fluxo conversacional de cobrança (Conversational UI)
 │   ├── lib/
 │   │   └── supabase.ts            # Client do Supabase
 │   ├── hooks/
@@ -233,15 +162,18 @@ facio-dashboard/
 │   │   ├── useGroups.ts           # Grupos + CRUD
 │   │   ├── useSections.ts         # Seções + CRUD (rename, ícone, descrição, mover, deletar)
 │   │   ├── useLinks.ts            # (sprint 6) Links + CRUD
+│   │   ├── useFlow.ts             # Fluxo de cobrança (flow_nodes + flow_options) com realtime
 │   │   └── useTheme.ts            # Hook de tema persistente
 │   ├── types/
 │   │   └── index.ts               # Tipos TypeScript do projeto
 │   ├── App.tsx
 │   └── main.tsx
 ├── supabase/
-│   ├── 0001_initial_schema.sql    # Tabelas + RLS + Realtime
-│   ├── 0002_seed.sql              # Seed inicial (grupos, seções, links com ícones Tabler)
-│   └── 0003_replace_emoji_icons.sql # Migração: troca emojis legados por nomes Tabler
+│   ├── 0001_initial_schema.sql      # Tabelas do dashboard + RLS + Realtime
+│   ├── 0002_seed.sql                # Seed do dashboard (grupos, seções, links)
+│   ├── 0003_replace_emoji_icons.sql # Migração: troca emojis legados por nomes Tabler
+│   ├── 0004_collection_flow.sql     # Tabelas flow_nodes + flow_options + RLS + Realtime
+│   └── 0005_collection_flow_seed.sql # Seed do fluxo de cobrança
 ├── public/
 ├── index.html
 ├── vite.config.ts
@@ -286,6 +218,31 @@ facio-dashboard/
 | url | text | URL do Notion ou externo |
 | icon | text | Ícone opcional |
 | order | int | Ordem dentro da seção |
+| created_at | timestamp | Data de criação |
+
+### Tabela `flow_nodes` (sprint 16)
+| Campo | Tipo | Descrição |
+|---|---|---|
+| id | text | Chave primária (slug curto, ex: `start`, `q_aceitou`, `r_desc_10`) |
+| type | text | `question` ou `result` |
+| title | text | Texto principal exibido |
+| subtitle | text | Subtítulo da pergunta (só `question`) |
+| description | text | Descrição auxiliar (só `result`) |
+| detail | text | Detalhe técnico, ex: "Valor da contratação × 0,90" |
+| tone | text | `success` / `neutral` / `warning` (só `result`) |
+| multiplier | numeric | Multiplicador do valor da contratação (opcional) |
+| multiplier_label | text | Label visual do multiplicador, ex: "× 0,90" |
+| is_root | bool | `true` no nó raiz do fluxo (único por tabela) |
+| created_at | timestamp | Data de criação |
+
+### Tabela `flow_options` (sprint 16)
+| Campo | Tipo | Descrição |
+|---|---|---|
+| id | uuid | Chave primária |
+| node_id | text | FK para `flow_nodes` (pergunta que oferece a opção) |
+| label | text | Texto do botão de resposta |
+| next_node_id | text | FK para `flow_nodes` (próximo nó ao escolher) |
+| order | int | Ordem de exibição |
 | created_at | timestamp | Data de criação |
 
 ---
@@ -356,50 +313,67 @@ Entrega incremental — cada sprint termina em algo testável de ponta a ponta a
 - [ ] Base de conhecimento alimentada via modo edição
 - [ ] Integração com API de LLM (modelo a definir)
 
-### Sprint 11 — Launcher (tela inicial com 2 opções)
-- [ ] Decidir abordagem de navegação (React Router vs estado local em `App`)
-- [ ] Componente `<Launcher />` com 2 cards interativos no centro:
-  - Card 1: **Dashboard de Operações** → leva pro fluxo atual
-  - Card 2: **Árvore de Cobrança** → leva pra nova ferramenta
-- [ ] Header compacto com Logo + ThemeToggle visível em todas as telas
-- [ ] Botão "voltar" pro launcher em cada ferramenta
-- [ ] Tela inicial é a nova rota padrão (`/`) — dashboard vira `/dashboard`, árvore vira `/tree`
+### Sprint 11 — Launcher (tela inicial com 2 opções) ✅
+- [x] Navegação por estado local em `App` (sem React Router — overhead desnecessário pro escopo atual)
+- [x] Componente `<Launcher />` com 2 cards no centro (Dashboard de Operações / Árvore de Cobrança)
+- [x] Header compacto com Logo + ThemeToggle + botão "Início" visível em todas as telas
+- [x] Transição entre views animada com `framer-motion`
 
-### Sprint 12 — Árvore de Cobrança: visualização estática
-- [ ] Instalar `mermaid` (renderiza a partir da sintaxe do source original)
-- [ ] Mover o flowchart desta seção pra `src/data/collectionFlow.ts` (string exportada)
-- [ ] Componente `<DecisionTree />` renderiza o flowchart como SVG
-- [ ] Pan & zoom (via `svg-pan-zoom` ou alternativa leve)
-- [ ] Adaptar cores do Mermaid ao tema (claro/escuro) usando a paleta Facio
-- [ ] Empty state se a source falhar
+### Sprint 12 — Árvore de Cobrança: estrutura de dados + UI inicial ✅
+- [x] Decisão: descartar Mermaid. JSON tipado direto em `src/data/collectionFlow.ts` (tipos `FlowNode` = `question | result`)
+- [x] Seed manual do fluxo da Facio a partir do flowchart original
+- [x] Componente `<CollectionTree />` renderiza a árvore com pergunta-raiz e galhos expandindo conforme escolhas
+- [x] Botões pras opções, destaque visual da escolha selecionada, "Recomeçar"
+- [x] Nós terminais: cards com tom (`success`/`warning`) + input "valor da contratação" + cálculo automático com `multiplier`
 
-### Sprint 13 — Modo wizard interativo
-- [ ] Parser do Mermaid → estrutura JSON tipada (`{ nodes: Node[], edges: Edge[] }`)
-- [ ] Hook `useDecisionWizard` mantém estado: nó atual + caminho percorrido
-- [ ] Componente `<DecisionWizard />` apresenta a pergunta do nó atual + botões pras opções (edges)
-- [ ] Cada clique avança a um próximo nó; quando chega num nó terminal, mostra a ação destacada
-- [ ] Breadcrumb do caminho percorrido (com voltar passo a passo)
-- [ ] Botão "Recomeçar" reseta o estado
-- [ ] Toggle no header da árvore: **Visualização** ↔ **Wizard**
+> **Substituída pela Sprint 15:** a UI de árvore com galhos foi trocada por Conversational UI linear.
 
-### Sprint 14 — Árvore editável persistida no Supabase (futuro)
-- [ ] Novas tabelas: `decision_trees`, `tree_nodes`, `tree_edges`
-- [ ] Migração SQL com seed do flow atual
-- [ ] Hook `useDecisionTree(treeId)` com realtime
-- [ ] Modo edição: criar/editar/deletar nós e arestas
-- [ ] Confirmação ao deletar (cascateia em arestas)
-- [ ] **Quando fazer:** quando Operations pedir pra mudar regras de desconto/faixa sem precisar de PR no código
+### Sprint 13 — Wizard interativo básico ✅
+- [x] Estado `path: string[]` rastreia caminho percorrido
+- [x] Cliques avançam pra próxima pergunta; nó terminal mostra ação destacada
+- [x] Botão "Recomeçar" reseta o estado
+- [x] Auto-scroll suave conforme o caminho avança
+
+### Sprint 14 — CRUD de seções avançado (pendente, baixa prioridade)
+- [ ] Reabrir se necessário; hoje o `SectionEditor` (Sprint 5) cobre o caso.
+
+### Sprint 15 — Árvore de Cobrança: refator pra Conversational UI linear ✅
+- [x] `<CollectionTree />` reescrito como renderização linear baseada no `path` (função `buildSteps` percorre o fluxo do root até o nó atual)
+- [x] Cada pergunta vira card de chat: bubble com a pergunta + botões redondos das opções; ao escolher, a opção vira pill alinhada à direita
+- [x] Nó terminal vira card "Ação recomendada" destacado (success / warning) com cálculo de desconto preservado
+- [x] Botões "Voltar uma etapa" + "Recomeçar" no rodapé
+- [x] Animações `framer-motion` por card (`opacity` + `y`) e por opção
+- [x] Componentes antigos (`QuestionBranch`, `SubBranch`, `VerticalLine`, `QuestionNode`) removidos
+
+### Sprint 16 — Persistência do fluxo no Supabase ✅
+- [x] Migração [`0004_collection_flow.sql`](supabase/0004_collection_flow.sql): tabelas `flow_nodes` (PK text) + `flow_options` (FK com `on delete restrict` no `next_node_id` pra impedir refs órfãs), unique index garantindo um único `is_root`, RLS anon + Realtime
+- [x] Seed [`0005_collection_flow_seed.sql`](supabase/0005_collection_flow_seed.sql) com os 11 nós e 10 opções do fluxo atual (idempotente — `on conflict do nothing` nos nós, `delete + re-insert` nas opções pra resetar caminhos)
+- [x] Hook [`useFlow()`](src/hooks/useFlow.ts) retorna `{ nodes, rootNodeId, loading, error }` combinando as duas tabelas, com subscription realtime nas duas
+- [x] `<CollectionTree />` consome o hook (estados de loading, erro e empty state quando não há nó raiz)
+- [x] `src/data/collectionFlow.ts` deletado
+
+### Sprint 17 — Painel admin do fluxo ✅
+- [x] `EditButton` no header da Árvore alterna entre modo "wizard" e modo "edição"
+- [x] [`FlowEditor`](src/editor/FlowEditor.tsx) com layout 2 colunas: lista lateral de nós (ordenada raiz → perguntas → ações) e form do nó selecionado
+- [x] Editor de **pergunta**: título + subtítulo (uncontrolled inputs com commit no blur), lista de opções com edição inline do label, dropdown de `next`, mover ↑/↓, deletar, e linha "Nova opção" inline
+- [x] Editor de **ação terminal**: título + descrição, seletor de `tone` (success/neutral/warning), toggle "tem cálculo de desconto?" que revela `multiplier` + `multiplier_label`
+- [x] Criar nó (pergunta ou ação) via prompts no botão "+ Pergunta" / "+ Ação"
+- [x] Deletar nó com `confirm()` + validação no hook: bloqueia se for raiz ou se outras opções apontam pra ele (mensagem informa quantas)
+- [x] "Definir como raiz" disponível em nós-pergunta não-raiz; o hook zera o `is_root` anterior e seta o novo
+- [x] Toasts de sucesso/erro auto-dismiss em 3.2s, com cor por tom
+- [x] Realtime já vinha da Sprint 16 — mudanças no editor refletem em quem está vendo o wizard
 
 ---
 
 ## Próximos passos
 
-- **Sprint 11 — Launcher**: requisito novo, vira o ponto de entrada do app. Precisa ser feito antes do deploy "final" porque muda o que o usuário vê primeiro ao abrir o embed do Notion.
-- **Sprint 6 — CRUD de links**: completa a fundação do dashboard de Operações.
-- **Sprints 12-13 — Árvore de Cobrança**: visualização + wizard. Após o launcher.
-- **Sprint 9 — Deploy**: Cloudflare Pages + embed no Notion. Repo já está em [github.com/FilipeCrepaldi/facio-dashboard](https://github.com/FilipeCrepaldi/facio-dashboard).
+Estado atual: a Árvore de Cobrança está completa — Sprints 11, 12, 13, 15, 16 e 17 todas entregues. Fundação do dashboard (0–5) também. Próximos focos:
 
-Sequência sugerida: 6 → 11 → 12 → 13 → 8 (polish) → 9 (deploy) → 14 (árvore editável, sob demanda).
+- **Sprint 6 — CRUD de links**: completa a fundação do dashboard de Operações.
+- **Sprint 7 — Reordenação** + **Sprint 8 — Polish**: melhorias do modo edição do dashboard.
+- **Sprint 9 — Deploy**: Cloudflare Pages + embed no Notion. Repo: [github.com/FilipeCrepaldi/facio-dashboard](https://github.com/FilipeCrepaldi/facio-dashboard).
+
+Sequência sugerida: **6** → 7 → 8 → 9 (deploy) → 10 (chatbot).
 
 ---
 
