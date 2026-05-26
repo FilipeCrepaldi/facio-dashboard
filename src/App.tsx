@@ -43,16 +43,15 @@ function App() {
   const workspaceName = workspace?.name ?? "Facio";
 
   return (
-    <div className="flex h-full w-full flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
-      <header className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-sidebar)] px-4 py-2">
-        <div className="flex items-center gap-2">
+    <div className="relative flex h-full w-full flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-2">
+        <div className="pointer-events-auto">
           <Logo size={24} />
-          <span className="text-sm font-medium text-[var(--color-text)]">
-            {workspaceName}
-          </span>
         </div>
-        <ThemeToggle theme={theme} onToggle={toggle} />
-      </header>
+        <div className="pointer-events-auto">
+          <ThemeToggle theme={theme} onToggle={toggle} />
+        </div>
+      </div>
 
       <div className="relative flex flex-1 overflow-hidden">
         <AnimatePresence mode="wait">
@@ -74,16 +73,16 @@ function App() {
             >
               <div
                 className={[
-                  "mx-auto flex flex-col gap-6 px-6 py-8",
+                  "mx-auto flex flex-col gap-8 px-6 pt-20 pb-10",
                   treeEditing ? "max-w-5xl" : "max-w-3xl",
                 ].join(" ")}
               >
                 <header className="flex items-start justify-between gap-4">
-                  <div>
-                    <h1 className="text-2xl font-semibold text-[var(--color-text)]">
+                  <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-semibold tracking-tight text-[var(--color-text)]">
                       Árvore de Cobrança
                     </h1>
-                    <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                    <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
                       {treeEditing
                         ? "Edite perguntas, respostas e ações terminais. Alterações são salvas automaticamente."
                         : "Responda cada pergunta e o fluxo guia até a ação recomendada."}
