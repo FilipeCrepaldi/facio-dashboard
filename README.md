@@ -148,7 +148,7 @@ facio-dashboard/
 │   │   ├── NewGroupButton.tsx     # Botão "+ Novo grupo" da sidebar
 │   │   ├── NewSectionButton.tsx   # Botão "+ Nova seção" por grupo
 │   │   ├── SectionEditor.tsx      # Modal completo (nome, ícone, descrição, grupo, deletar)
-│   │   ├── LinkEditor.tsx         # (sprint 6) Criar/editar/deletar links
+│   │   ├── LinkEditor.tsx         # Modal criar/editar/deletar link (label, URL, ícone)
 │   │   └── FlowEditor.tsx         # Painel admin da Árvore (lista de nós + form + toasts)
 │   ├── pages/
 │   │   ├── Launcher.tsx           # Tela inicial com os 2 cards (Dashboard / Árvore)
@@ -161,7 +161,7 @@ facio-dashboard/
 │   │   ├── useWorkspace.ts        # Workspace + updateName
 │   │   ├── useGroups.ts           # Grupos + CRUD
 │   │   ├── useSections.ts         # Seções + CRUD (rename, ícone, descrição, mover, deletar)
-│   │   ├── useLinks.ts            # (sprint 6) Links + CRUD
+│   │   ├── useLinks.ts            # Links + CRUD com realtime
 │   │   ├── useFlow.ts             # Fluxo de cobrança (flow_nodes + flow_options) com realtime
 │   │   └── useTheme.ts            # Hook de tema persistente
 │   ├── types/
@@ -287,10 +287,11 @@ Entrega incremental — cada sprint termina em algo testável de ponta a ponta a
 - [x] 49 ícones Tabler disponíveis no picker (substituem os emojis do seed)
 - [x] Migração `0003_replace_emoji_icons.sql` atualiza ícones de seeds antigos
 
-### Sprint 6 — CRUD de links
-- [ ] Criar link dentro de uma seção
-- [ ] Editar label / URL / ícone
-- [ ] Deletar link
+### Sprint 6 — CRUD de links ✅
+- [x] `useLinks` estendido com `createLink` / `updateLink` / `deleteLink` (mesmo padrão de `useSections` — optimistic update + rollback)
+- [x] [`LinkEditor`](src/editor/LinkEditor.tsx) — modal com label, URL, picker de ícone (49 Tabler) + botão deletar com `confirm()`
+- [x] `ItemRow` ganhou prop `onEdit?` — botão pencil aparece no hover do row sem quebrar o `<a>` (stopPropagation no click)
+- [x] `SectionPage` no modo edição mostra "Novo link" no fim e pencil em cada link existente
 
 ### Sprint 7 — Reordenação
 - [ ] Drag-and-drop (dnd-kit) ou setas para grupos, seções e links
@@ -367,13 +368,13 @@ Entrega incremental — cada sprint termina em algo testável de ponta a ponta a
 
 ## Próximos passos
 
-Estado atual: a Árvore de Cobrança está completa — Sprints 11, 12, 13, 15, 16 e 17 todas entregues. Fundação do dashboard (0–5) também. Próximos focos:
+Estado atual: dashboard de Operações com CRUD completo (Sprints 0–6) + Árvore de Cobrança com Conversational UI editável (11, 12, 13, 15, 16, 17). Deploy parcial: já está no Cloudflare Pages mas alguns ajustes da Sprint 9 ainda faltam (testar embed, headers, etc.). Próximos focos:
 
-- **Sprint 6 — CRUD de links**: completa a fundação do dashboard de Operações.
 - **Sprint 7 — Reordenação** + **Sprint 8 — Polish**: melhorias do modo edição do dashboard.
-- **Sprint 9 — Deploy**: Cloudflare Pages + embed no Notion. Repo: [github.com/FilipeCrepaldi/facio-dashboard](https://github.com/FilipeCrepaldi/facio-dashboard).
+- **Sprint 9 — Deploy**: validar `/embed` no Notion, configurar headers, conferir env vars no painel da CF.
+- **Sprint 10 — Chatbot** (Fase 3): widget + base de conhecimento + LLM.
 
-Sequência sugerida: **6** → 7 → 8 → 9 (deploy) → 10 (chatbot).
+Sequência sugerida: **7** → **8** → **9** (finalizar embed) → **10**.
 
 ---
 

@@ -1,4 +1,3 @@
-import { IconArrowLeft } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { EditButton } from "./components/EditButton";
@@ -32,9 +31,9 @@ function App() {
   const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
   const { sections, createSection, updateSection, deleteSection } =
     useSections();
-  const { links } = useLinks();
+  const { links, createLink, updateLink, deleteLink } = useLinks();
 
-  const [view, setView] = useState<View>("launcher");
+  const [view, setView] = useState<View>("tree");
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [treeEditing, setTreeEditing] = useState(false);
@@ -43,32 +42,15 @@ function App() {
     sections.find((s) => s.id === activeSectionId) ?? null;
   const workspaceName = workspace?.name ?? "Facio";
 
-  const goLauncher = () => {
-    setView("launcher");
-    setEditing(false);
-    setTreeEditing(false);
-  };
-
   return (
     <div className="flex h-full w-full flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
       <header className="flex shrink-0 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-sidebar)] px-4 py-2">
-        {view === "launcher" ? (
-          <div className="flex items-center gap-2">
-            <Logo size={24} />
-            <span className="text-sm font-medium text-[var(--color-text)]">
-              {workspaceName}
-            </span>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={goLauncher}
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-text)]"
-          >
-            <IconArrowLeft size={14} stroke={2} />
-            Início
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <Logo size={24} />
+          <span className="text-sm font-medium text-[var(--color-text)]">
+            {workspaceName}
+          </span>
+        </div>
         <ThemeToggle theme={theme} onToggle={toggle} />
       </header>
 
@@ -160,7 +142,14 @@ function App() {
                       />
                     }
                   >
-                    <SectionPage section={activeSection} links={links} />
+                    <SectionPage
+                      section={activeSection}
+                      links={links}
+                      editing={editing}
+                      onCreateLink={createLink}
+                      onUpdateLink={updateLink}
+                      onDeleteLink={deleteLink}
+                    />
                   </PageContent>
                 ) : (
                   <PageContent
