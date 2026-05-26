@@ -82,7 +82,7 @@ function App() {
                     <h1 className="text-3xl font-semibold tracking-tight text-[var(--color-text)]">
                       Árvore de Cobrança
                     </h1>
-                    <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
+                    <p className="text-base leading-relaxed text-[var(--color-text-muted)]">
                       {treeEditing
                         ? "Edite perguntas, respostas e ações terminais. Alterações são salvas automaticamente."
                         : "Responda cada pergunta e o fluxo guia até a ação recomendada."}

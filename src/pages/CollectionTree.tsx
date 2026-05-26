@@ -159,17 +159,17 @@ export function CollectionTree({ editing }: { editing: boolean }) {
           <button
             type="button"
             onClick={back}
-            className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-text)] transition hover:bg-[var(--color-border)]"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-sm font-medium text-[var(--color-text)] transition hover:bg-[var(--color-border)]"
           >
-            <IconArrowLeft size={14} stroke={2} />
+            <IconArrowLeft size={16} stroke={2} />
             Voltar uma etapa
           </button>
           <button
             type="button"
             onClick={restart}
-            className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-facio-blue)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-facio-blue)] px-3.5 py-2 text-sm font-medium text-white transition hover:opacity-90"
           >
-            <IconRefresh size={14} stroke={2} />
+            <IconRefresh size={16} stroke={2} />
             Recomeçar
           </button>
         </motion.div>
@@ -196,11 +196,11 @@ function QuestionStep({ step, depth, onChoose }: QuestionStepProps) {
     >
       <div className="flex">
         <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-          <p className="text-sm font-medium text-[var(--color-text)]">
+          <p className="text-base font-medium text-[var(--color-text)]">
             {node.title}
           </p>
           {node.subtitle ? (
-            <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">
               {node.subtitle}
             </p>
           ) : null}
@@ -213,7 +213,7 @@ function QuestionStep({ step, depth, onChoose }: QuestionStepProps) {
             initial={{ opacity: 0, x: 8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="max-w-[80%] rounded-2xl rounded-br-md bg-[var(--color-facio-blue)] px-3.5 py-2 text-xs font-medium text-white"
+            className="max-w-[80%] rounded-2xl rounded-br-md bg-[var(--color-facio-blue)] px-3.5 py-2 text-sm font-medium text-white"
           >
             {answerLabel}
           </motion.div>
@@ -229,7 +229,7 @@ function QuestionStep({ step, depth, onChoose }: QuestionStepProps) {
               animate={{ opacity: 1, y: 0 }}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
-              className="rounded-full border border-[var(--color-facio-blue)] bg-transparent px-3.5 py-1.5 text-xs font-medium text-[var(--color-facio-blue)] transition hover:bg-[var(--color-facio-blue)] hover:text-white"
+              className="rounded-full border border-[var(--color-facio-blue)] bg-transparent px-4 py-2 text-sm font-medium text-[var(--color-facio-blue)] transition hover:bg-[var(--color-facio-blue)] hover:text-white"
             >
               {opt.label}
             </motion.button>
@@ -290,10 +290,10 @@ function ResultStep({
           )}
         </div>
         <div className="flex flex-col">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
             Ação recomendada
           </span>
-          <h4 className="text-sm font-semibold leading-snug text-[var(--color-text)]">
+          <h4 className="text-base font-semibold leading-snug text-[var(--color-text)]">
             {node.title}
           </h4>
         </div>
@@ -302,7 +302,7 @@ function ResultStep({
       {node.multiplier !== undefined ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-2 transition focus-within:border-[var(--color-facio-blue)]">
-            <span className="text-[10px] font-semibold text-[var(--color-text-muted)]">
+            <span className="text-xs font-semibold text-[var(--color-text-muted)]">
               R$
             </span>
             <input
@@ -311,26 +311,26 @@ function ResultStep({
               value={contractValue}
               onChange={(e) => onContractValueChange(e.target.value)}
               placeholder="Valor da contratação"
-              className="w-full bg-transparent text-xs text-[var(--color-text)] outline-none"
+              className="w-full bg-transparent text-sm text-[var(--color-text)] outline-none"
             />
           </div>
           <div className="flex items-baseline justify-between gap-2 border-t border-dashed border-[var(--color-border)] pt-2">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
               {node.multiplierLabel}
             </span>
-            <span className="font-mono text-base font-semibold text-[var(--color-text)]">
+            <span className="font-mono text-lg font-semibold text-[var(--color-text)]">
               {computed !== null ? brl.format(computed) : "—"}
             </span>
           </div>
         </div>
       ) : node.detail ? (
-        <p className="font-mono text-[11px] text-[var(--color-text-muted)]">
+        <p className="font-mono text-xs text-[var(--color-text-muted)]">
           {node.detail}
         </p>
       ) : null}
 
       {node.description ? (
-        <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+        <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
           {node.description}
         </p>
       ) : null}
