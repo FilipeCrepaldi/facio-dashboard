@@ -1,3 +1,4 @@
+import { IconArrowLeft } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { EditButton } from "./components/EditButton";
@@ -33,7 +34,7 @@ function App() {
     useSections();
   const { links, createLink, updateLink, deleteLink } = useLinks();
 
-  const [view, setView] = useState<View>("tree");
+  const [view, setView] = useState<View>("launcher");
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [treeEditing, setTreeEditing] = useState(false);
@@ -42,12 +43,32 @@ function App() {
     sections.find((s) => s.id === activeSectionId) ?? null;
   const workspaceName = workspace?.name ?? "Facio";
 
+  const goLauncher = () => {
+    setView("launcher");
+    setEditing(false);
+    setTreeEditing(false);
+  };
+
   return (
     <div className="relative flex h-full w-full flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-2">
-        <div className="pointer-events-auto">
-          <Logo size={24} />
-        </div>
+        {view !== "dashboard" ? (
+          <div className="pointer-events-auto flex items-center gap-2">
+            <Logo size={24} />
+            {view !== "launcher" ? (
+              <button
+                type="button"
+                onClick={goLauncher}
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-text)]"
+              >
+                <IconArrowLeft size={14} stroke={2} />
+                Início
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div />
+        )}
         <div className="pointer-events-auto">
           <ThemeToggle theme={theme} onToggle={toggle} />
         </div>
@@ -111,6 +132,7 @@ function App() {
                 activeSectionId={activeSectionId}
                 editing={editing}
                 onSelectHome={() => setActiveSectionId(null)}
+                onGoLauncher={goLauncher}
                 onSelectSection={setActiveSectionId}
                 onRenameWorkspace={renameWorkspace}
                 onCreateGroup={createGroup}

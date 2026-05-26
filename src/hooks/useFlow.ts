@@ -130,31 +130,57 @@ export function useFlow() {
     let active = true;
 
     const load = async () => {
-      const [nodesRes, optionsRes] = await Promise.all([
-        supabase.from("flow_nodes").select("*"),
-        supabase.from("flow_options").select("*"),
-      ]);
+      console.info("[useFlow] iniciando fetch…");
+      const timeoutMs = 10_000;
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                `Supabase não respondeu em ${timeoutMs / 1000}s. Verifique URL/chave no .env e se as migrações 0004/0005 rodaram.`,
+              ),
+            ),
+          timeoutMs,
+        ),
+      );
 
-      if (!active) return;
+      try {
+        const fetchAll = Promise.all([
+          supabase.from("flow_nodes").select("*"),
+          supabase.from("flow_options").select("*"),
+        ]);
+        const [nodesRes, optionsRes] = await Promise.race([
+          fetchAll,
+          timeout,
+        ]);
 
-      if (nodesRes.error) {
-        setError(nodesRes.error.message);
-        setLoading(false);
-        return;
+        if (!active) return;
+
+        console.info("[useFlow] resposta recebida", { nodesRes, optionsRes });
+
+        if (nodesRes.error) {
+          setError(`flow_nodes: ${nodesRes.error.message}`);
+          return;
+        }
+        if (optionsRes.error) {
+          setError(`flow_options: ${optionsRes.error.message}`);
+          return;
+        }
+
+        const nodeRows = (nodesRes.data ?? []) as NodeRow[];
+        const optionRows = (optionsRes.data ?? []) as OptionRow[];
+
+        setNodes(buildNodes(nodeRows, optionRows));
+        setRootNodeId(nodeRows.find((n) => n.is_root)?.id ?? null);
+        setError(null);
+      } catch (err) {
+        if (!active) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[useFlow] erro:", err);
+        setError(msg);
+      } finally {
+        if (active) setLoading(false);
       }
-      if (optionsRes.error) {
-        setError(optionsRes.error.message);
-        setLoading(false);
-        return;
-      }
-
-      const nodeRows = (nodesRes.data ?? []) as NodeRow[];
-      const optionRows = (optionsRes.data ?? []) as OptionRow[];
-
-      setNodes(buildNodes(nodeRows, optionRows));
-      setRootNodeId(nodeRows.find((n) => n.is_root)?.id ?? null);
-      setError(null);
-      setLoading(false);
     };
 
     load();

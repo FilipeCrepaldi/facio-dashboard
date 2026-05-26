@@ -1,4 +1,4 @@
-import { IconPencil, IconTrash } from "@tabler/icons-react";
+import { IconArrowLeft, IconPencil, IconTrash } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { GroupHeader } from "../editor/GroupHeader";
 import { NewGroupButton } from "../editor/NewGroupButton";
@@ -23,6 +23,7 @@ type Props = {
   activeSectionId: string | null;
   editing: boolean;
   onSelectHome: () => void;
+  onGoLauncher?: () => void;
   onSelectSection: (sectionId: string) => void;
   onRenameWorkspace: (name: string) => void;
   onCreateGroup: (name: string) => void;
@@ -40,6 +41,7 @@ export function Sidebar({
   activeSectionId,
   editing,
   onSelectHome,
+  onGoLauncher,
   onSelectSection,
   onRenameWorkspace,
   onCreateGroup,
@@ -96,6 +98,17 @@ export function Sidebar({
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col gap-4 border-r border-[var(--color-border)] bg-[var(--color-sidebar)] px-3 py-4">
+      {onGoLauncher ? (
+        <button
+          type="button"
+          onClick={onGoLauncher}
+          className="inline-flex w-fit items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-text)]"
+        >
+          <IconArrowLeft size={14} stroke={2} />
+          Início
+        </button>
+      ) : null}
+
       <div className="flex items-center gap-2 rounded-md px-2 py-1">
         <button
           type="button"
