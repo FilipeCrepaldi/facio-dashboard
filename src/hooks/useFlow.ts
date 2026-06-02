@@ -15,6 +15,8 @@ export type FlowQuestion = {
   options: FlowOption[];
 };
 
+export type CalcType = "antecipacao" | "acordo_cf";
+
 export type FlowResult = {
   id: string;
   type: "result";
@@ -24,6 +26,7 @@ export type FlowResult = {
   tone: "success" | "neutral" | "warning";
   multiplier?: number;
   multiplierLabel?: string;
+  calcType?: CalcType;
 };
 
 export type FlowNode = FlowQuestion | FlowResult;
@@ -44,6 +47,7 @@ export type CreateNodeInput =
       tone: Tone;
       multiplier?: number;
       multiplierLabel?: string;
+      calcType?: CalcType;
     };
 
 export type UpdateNodePatch = Partial<{
@@ -54,6 +58,7 @@ export type UpdateNodePatch = Partial<{
   tone: Tone;
   multiplier: number | null;
   multiplier_label: string | null;
+  calc_type: CalcType | null;
 }>;
 
 type MutationResult<T = unknown> = { error?: string } & T;
@@ -68,6 +73,7 @@ type NodeRow = {
   tone: Tone | null;
   multiplier: number | null;
   multiplier_label: string | null;
+  calc_type: CalcType | null;
   is_root: boolean;
 };
 
@@ -114,6 +120,7 @@ function buildNodes(
         tone: row.tone ?? "neutral",
         multiplier: row.multiplier ?? undefined,
         multiplierLabel: row.multiplier_label ?? undefined,
+        calcType: row.calc_type ?? undefined,
       };
     }
   }
@@ -130,31 +137,57 @@ export function useFlow() {
     let active = true;
 
     const load = async () => {
-      const [nodesRes, optionsRes] = await Promise.all([
-        supabase.from("flow_nodes").select("*"),
-        supabase.from("flow_options").select("*"),
-      ]);
+      console.info("[useFlow] iniciando fetch…");
+      const timeoutMs = 10_000;
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                `Supabase não respondeu em ${timeoutMs / 1000}s. Verifique URL/chave no .env e se as migrações 0004/0005 rodaram.`,
+              ),
+            ),
+          timeoutMs,
+        ),
+      );
 
-      if (!active) return;
+      try {
+        const fetchAll = Promise.all([
+          supabase.from("flow_nodes").select("*"),
+          supabase.from("flow_options").select("*"),
+        ]);
+        const [nodesRes, optionsRes] = await Promise.race([
+          fetchAll,
+          timeout,
+        ]);
 
-      if (nodesRes.error) {
-        setError(nodesRes.error.message);
-        setLoading(false);
-        return;
+        if (!active) return;
+
+        console.info("[useFlow] resposta recebida", { nodesRes, optionsRes });
+
+        if (nodesRes.error) {
+          setError(`flow_nodes: ${nodesRes.error.message}`);
+          return;
+        }
+        if (optionsRes.error) {
+          setError(`flow_options: ${optionsRes.error.message}`);
+          return;
+        }
+
+        const nodeRows = (nodesRes.data ?? []) as NodeRow[];
+        const optionRows = (optionsRes.data ?? []) as OptionRow[];
+
+        setNodes(buildNodes(nodeRows, optionRows));
+        setRootNodeId(nodeRows.find((n) => n.is_root)?.id ?? null);
+        setError(null);
+      } catch (err) {
+        if (!active) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[useFlow] erro:", err);
+        setError(msg);
+      } finally {
+        if (active) setLoading(false);
       }
-      if (optionsRes.error) {
-        setError(optionsRes.error.message);
-        setLoading(false);
-        return;
-      }
-
-      const nodeRows = (nodesRes.data ?? []) as NodeRow[];
-      const optionRows = (optionsRes.data ?? []) as OptionRow[];
-
-      setNodes(buildNodes(nodeRows, optionRows));
-      setRootNodeId(nodeRows.find((n) => n.is_root)?.id ?? null);
-      setError(null);
-      setLoading(false);
     };
 
     load();
@@ -205,6 +238,7 @@ export function useFlow() {
               tone: input.tone,
               multiplier: input.multiplier ?? null,
               multiplier_label: input.multiplierLabel?.trim() || null,
+              calc_type: input.calcType ?? null,
               is_root: false,
             });
 

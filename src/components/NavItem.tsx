@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { Icon } from "./Icon";
 
 type Props = {
@@ -7,9 +7,10 @@ type Props = {
   active?: boolean;
   onClick?: () => void;
   actions?: ReactNode;
+  dragHandleProps?: HTMLAttributes<HTMLButtonElement>;
 };
 
-export function NavItem({ label, icon, active, onClick, actions }: Props) {
+export function NavItem({ label, icon, active, onClick, actions, dragHandleProps }: Props) {
   return (
     <div
       className={[
@@ -19,6 +20,24 @@ export function NavItem({ label, icon, active, onClick, actions }: Props) {
           : "text-[var(--color-text-muted)] hover:bg-[var(--color-border)] hover:text-[var(--color-text)]",
       ].join(" ")}
     >
+      {dragHandleProps ? (
+        <button
+          type="button"
+          {...dragHandleProps}
+          className="cursor-grab pl-1 pr-0 py-1.5 text-[var(--color-text-muted)] opacity-0 transition hover:text-[var(--color-text)] group-hover/nav:opacity-100 active:cursor-grabbing"
+          title="Arrastar para reordenar"
+          aria-label="Reordenar seção"
+        >
+          <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+            <circle cx="3" cy="2.5" r="1.2" />
+            <circle cx="7" cy="2.5" r="1.2" />
+            <circle cx="3" cy="7" r="1.2" />
+            <circle cx="7" cy="7" r="1.2" />
+            <circle cx="3" cy="11.5" r="1.2" />
+            <circle cx="7" cy="11.5" r="1.2" />
+          </svg>
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={onClick}

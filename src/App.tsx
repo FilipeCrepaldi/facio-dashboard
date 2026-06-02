@@ -1,10 +1,12 @@
+import { IconArrowLeft } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EditButton } from "./components/EditButton";
 import { Logo } from "./components/Logo";
 import { PageContent } from "./components/PageContent";
 import { Sidebar } from "./components/Sidebar";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { ToastProvider, useToast } from "./components/Toast";
 import { useGroups } from "./hooks/useGroups";
 import { useLinks } from "./hooks/useLinks";
 import { useSections } from "./hooks/useSections";
@@ -25,29 +27,62 @@ const pageTransition = {
   transition: { duration: 0.28, ease: "easeOut" as const },
 };
 
-function App() {
+function AppInner() {
+  const toast = useToast();
   const { theme, toggle } = useTheme();
   const { workspace, updateName: renameWorkspace } = useWorkspace();
-  const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
-  const { sections, createSection, updateSection, deleteSection } =
-    useSections();
-  const { links, createLink, updateLink, deleteLink } = useLinks();
+  const { groups, error: groupsError, createGroup, renameGroup, deleteGroup, reorderGroups } = useGroups();
+  const { sections, error: sectionsError, createSection, updateSection, deleteSection, reorderSections } = useSections();
+  const { links, error: linksError, createLink, updateLink, deleteLink, reorderLinks } = useLinks();
 
   const [view, setView] = useState<View>("tree");
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [treeEditing, setTreeEditing] = useState(false);
 
+  // Surface Supabase errors as toasts
+  useEffect(() => {
+    if (groupsError) toast.error(groupsError);
+  }, [groupsError]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (sectionsError) toast.error(sectionsError);
+  }, [sectionsError]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (linksError) toast.error(linksError);
+  }, [linksError]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const activeSection =
     sections.find((s) => s.id === activeSectionId) ?? null;
   const workspaceName = workspace?.name ?? "Facio";
 
+  const goLauncher = () => {
+    setView("launcher");
+    setEditing(false);
+    setTreeEditing(false);
+  };
+
   return (
     <div className="relative flex h-full w-full flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-2">
-        <div className="pointer-events-auto">
-          <Logo size={24} />
-        </div>
+        {view !== "dashboard" ? (
+          <div className="pointer-events-auto flex items-center gap-2">
+            <Logo size={24} />
+            {view !== "launcher" ? (
+              <button
+                type="button"
+                onClick={goLauncher}
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-text)]"
+              >
+                <IconArrowLeft size={14} stroke={2} />
+                Início
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div />
+        )}
         <div className="pointer-events-auto">
           <ThemeToggle theme={theme} onToggle={toggle} />
         </div>
@@ -111,14 +146,17 @@ function App() {
                 activeSectionId={activeSectionId}
                 editing={editing}
                 onSelectHome={() => setActiveSectionId(null)}
+                onGoLauncher={goLauncher}
                 onSelectSection={setActiveSectionId}
                 onRenameWorkspace={renameWorkspace}
                 onCreateGroup={createGroup}
                 onRenameGroup={renameGroup}
                 onDeleteGroup={deleteGroup}
+                onReorderGroups={reorderGroups}
                 onCreateSection={createSection}
                 onUpdateSection={(id, values) => updateSection(id, values)}
                 onDeleteSection={deleteSection}
+                onReorderSections={reorderSections}
               />
 
               <div className="flex flex-1 flex-col">
@@ -148,6 +186,7 @@ function App() {
                       onCreateLink={createLink}
                       onUpdateLink={updateLink}
                       onDeleteLink={deleteLink}
+                      onReorderLinks={reorderLinks}
                     />
                   </PageContent>
                 ) : (
@@ -175,6 +214,14 @@ function App() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
   );
 }
 
