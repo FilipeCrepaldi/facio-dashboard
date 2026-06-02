@@ -357,7 +357,7 @@ function AntecipacaoCalc({
     <div className="flex flex-col gap-2">
       <MoneyInput
         value={contractValue}
-        placeholder="Valor da contratação"
+        placeholder="Insira o valor"
         onChange={onChange}
       />
       <CalcResult label={label ?? "Desconto"} value={computed} />
@@ -387,7 +387,7 @@ function AcordoCFCalc({
     <div className="flex flex-col gap-2">
       <MoneyInput
         value={value}
-        placeholder="Valor em atraso (com taxas e juros)"
+        placeholder="Insira o valor"
         onChange={onChange}
       />
       {discountAmount ? (
