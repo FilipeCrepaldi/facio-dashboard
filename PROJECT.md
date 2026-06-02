@@ -175,15 +175,4 @@ workspace
 
 Sequência sugerida: **7 → 8 → 9 → 10**.
 
----
 
-## Para rodar localmente
-
-```bash
-cd facio-dashboard
-npm install
-cp .env.example .env   # preencher VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
-npm run dev
-```
-
-Aplicar as migrações `supabase/0001…0005.sql` no Supabase Studio em ordem.

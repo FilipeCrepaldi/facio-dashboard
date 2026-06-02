@@ -125,7 +125,10 @@ export function CollectionTree({ editing }: { editing: boolean }) {
   };
 
   const back = () => setPath((prev) => prev.slice(0, -1));
-  const restart = () => setPath([]);
+  const restart = () => {
+    setPath([]);
+    setContractValue("");
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -246,23 +249,29 @@ type ResultStepProps = {
   onContractValueChange: (v: string) => void;
 };
 
-function ResultStep({
-  node,
-  contractValue,
-  onContractValueChange,
-}: ResultStepProps) {
-  const numericValue = parseBRNumber(contractValue);
-  const computed =
-    node.multiplier !== undefined && numericValue !== null
-      ? numericValue * node.multiplier
-      : null;
-
+function ResultStep({ node, contractValue, onContractValueChange }: ResultStepProps) {
   const accentClass =
     node.tone === "warning"
       ? "border-[var(--color-sun)]/60 bg-[var(--color-sun)]/10"
       : node.tone === "success"
         ? "border-[var(--color-menta)]/50 bg-[var(--color-menta)]/10"
         : "border-[var(--color-border)] bg-[var(--color-surface)]";
+
+  const hasCalc = node.multiplier !== undefined && node.calcType != null;
+  const isAcordoCF = node.calcType === "acordo_cf";
+
+  const inputNum = parseBRNumber(contractValue);
+
+  let computed: number | null = null;
+  if (hasCalc && inputNum !== null) {
+    if (isAcordoCF) {
+      // Acordo CF: valor em atraso (com juros) × (1 − taxa) = valor do acordo
+      computed = inputNum * (1 - node.multiplier!);
+    } else {
+      // Antecipação: valor da contratação × taxa = valor do desconto
+      computed = inputNum * node.multiplier!;
+    }
+  }
 
   return (
     <motion.div
@@ -299,30 +308,23 @@ function ResultStep({
         </div>
       </div>
 
-      {node.multiplier !== undefined ? (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-2 transition focus-within:border-[var(--color-facio-blue)]">
-            <span className="text-xs font-semibold text-[var(--color-text-muted)]">
-              R$
-            </span>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={contractValue}
-              onChange={(e) => onContractValueChange(e.target.value)}
-              placeholder="Valor da contratação"
-              className="w-full bg-transparent text-sm text-[var(--color-text)] outline-none"
-            />
-          </div>
-          <div className="flex items-baseline justify-between gap-2 border-t border-dashed border-[var(--color-border)] pt-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
-              {node.multiplierLabel}
-            </span>
-            <span className="font-mono text-lg font-semibold text-[var(--color-text)]">
-              {computed !== null ? brl.format(computed) : "—"}
-            </span>
-          </div>
-        </div>
+      {hasCalc ? (
+        isAcordoCF ? (
+          <AcordoCFCalc
+            value={contractValue}
+            rate={node.multiplier!}
+            resultLabel={node.multiplierLabel}
+            computed={computed}
+            onChange={onContractValueChange}
+          />
+        ) : (
+          <AntecipacaoCalc
+            contractValue={contractValue}
+            label={node.multiplierLabel}
+            computed={computed}
+            onChange={onContractValueChange}
+          />
+        )
       ) : node.detail ? (
         <p className="font-mono text-xs text-[var(--color-text-muted)]">
           {node.detail}
@@ -335,5 +337,110 @@ function ResultStep({
         </p>
       ) : null}
     </motion.div>
+  );
+}
+
+// ─── Antecipação ──────────────────────────────────────────────────────────────
+
+function AntecipacaoCalc({
+  contractValue,
+  label,
+  computed,
+  onChange,
+}: {
+  contractValue: string;
+  label?: string;
+  computed: number | null;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <MoneyInput
+        value={contractValue}
+        placeholder="Valor da contratação"
+        onChange={onChange}
+      />
+      <CalcResult label={label ?? "Desconto"} value={computed} />
+    </div>
+  );
+}
+
+// ─── Acordo CF ────────────────────────────────────────────────────────────────
+
+function AcordoCFCalc({
+  value,
+  rate,
+  resultLabel,
+  computed,
+  onChange,
+}: {
+  value: string;
+  rate: number;
+  resultLabel?: string;
+  computed: number | null;
+  onChange: (v: string) => void;
+}) {
+  const inputNum = parseBRNumber(value);
+  const discountAmount = inputNum !== null ? brl.format(inputNum * rate) : null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <MoneyInput
+        value={value}
+        placeholder="Valor em atraso (com taxas e juros)"
+        onChange={onChange}
+      />
+      {discountAmount ? (
+        <p className="text-[11px] text-[var(--color-text-muted)]">
+          Desconto aplicado:{" "}
+          <span className="font-medium text-[var(--color-text)]">
+            {discountAmount}
+          </span>{" "}
+          ({(rate * 100).toFixed(0)}% do valor em atraso)
+        </p>
+      ) : null}
+      <CalcResult label={resultLabel ?? "Valor do Acordo CF"} value={computed} />
+    </div>
+  );
+}
+
+// ─── Shared primitives ────────────────────────────────────────────────────────
+
+function MoneyInput({
+  value,
+  placeholder,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-2 transition focus-within:border-[var(--color-facio-blue)]">
+      <span className="text-xs font-semibold text-[var(--color-text-muted)]">
+        R$
+      </span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-transparent text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]"
+      />
+    </div>
+  );
+}
+
+function CalcResult({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className="flex items-baseline justify-between gap-2 border-t border-dashed border-[var(--color-border)] pt-2">
+      <span className="text-xs font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
+        {label}
+      </span>
+      <span className="font-mono text-lg font-semibold text-[var(--color-text)]">
+        {value !== null ? brl.format(value) : "—"}
+      </span>
+    </div>
   );
 }

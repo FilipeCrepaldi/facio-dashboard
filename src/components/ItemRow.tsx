@@ -1,15 +1,35 @@
 import { IconPencil } from "@tabler/icons-react";
+import type { HTMLAttributes } from "react";
 import type { Link } from "../types";
 import { Icon } from "./Icon";
 
 type Props = {
   link: Link;
   onEdit?: () => void;
+  dragHandleProps?: HTMLAttributes<HTMLButtonElement>;
 };
 
-export function ItemRow({ link, onEdit }: Props) {
+export function ItemRow({ link, onEdit, dragHandleProps }: Props) {
   return (
-    <div className="group/row relative flex items-center">
+    <div className="group/row relative flex items-center gap-1">
+      {dragHandleProps ? (
+        <button
+          type="button"
+          {...dragHandleProps}
+          className="cursor-grab rounded p-1 text-[var(--color-text-muted)] opacity-0 transition hover:text-[var(--color-text)] group-hover/row:opacity-100 active:cursor-grabbing"
+          title="Arrastar para reordenar"
+          aria-label="Reordenar link"
+        >
+          <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+            <circle cx="3" cy="2.5" r="1.2" />
+            <circle cx="7" cy="2.5" r="1.2" />
+            <circle cx="3" cy="7" r="1.2" />
+            <circle cx="7" cy="7" r="1.2" />
+            <circle cx="3" cy="11.5" r="1.2" />
+            <circle cx="7" cy="11.5" r="1.2" />
+          </svg>
+        </button>
+      ) : null}
       <a
         href={link.url}
         target="_blank"

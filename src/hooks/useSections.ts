@@ -11,6 +11,8 @@ export type SectionInput = {
 
 export type SectionPatch = Partial<Omit<Section, "id" | "created_at" | "order">>;
 
+type MutResult = { error?: string };
+
 export function useSections() {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,9 +50,9 @@ export function useSections() {
   }, []);
 
   const createSection = useCallback(
-    async (input: SectionInput) => {
+    async (input: SectionInput): Promise<MutResult> => {
       const trimmed = input.name.trim();
-      if (!trimmed) return;
+      if (!trimmed) return {};
 
       const sameGroup = sections.filter((s) => s.group_id === input.group_id);
       const nextOrder = sameGroup.length
@@ -65,15 +67,19 @@ export function useSections() {
         order: nextOrder,
       });
 
-      if (error) setError(error.message);
+      if (error) {
+        setError(error.message);
+        return { error: error.message };
+      }
+      return {};
     },
     [sections]
   );
 
   const updateSection = useCallback(
-    async (id: string, patch: SectionPatch) => {
+    async (id: string, patch: SectionPatch): Promise<MutResult> => {
       const target = sections.find((s) => s.id === id);
-      if (!target) return;
+      if (!target) return {};
 
       const cleaned: SectionPatch = { ...patch };
       if (typeof cleaned.name === "string") cleaned.name = cleaned.name.trim();
@@ -81,7 +87,7 @@ export function useSections() {
         cleaned.description = cleaned.description.trim() || null;
       }
 
-      if (cleaned.name === "") return;
+      if (cleaned.name === "") return {};
 
       const previous = sections;
       setSections(
@@ -96,13 +102,15 @@ export function useSections() {
       if (error) {
         setSections(previous);
         setError(error.message);
+        return { error: error.message };
       }
+      return {};
     },
     [sections]
   );
 
   const deleteSection = useCallback(
-    async (id: string) => {
+    async (id: string): Promise<MutResult> => {
       const previous = sections;
       setSections(sections.filter((s) => s.id !== id));
 
@@ -111,7 +119,38 @@ export function useSections() {
       if (error) {
         setSections(previous);
         setError(error.message);
+        return { error: error.message };
       }
+      return {};
+    },
+    [sections]
+  );
+
+  const reorderSections = useCallback(
+    async (groupId: string, orderedIds: string[]): Promise<MutResult> => {
+      const previous = sections;
+
+      const reordered = sections.map((s) => {
+        if (s.group_id !== groupId) return s;
+        const idx = orderedIds.indexOf(s.id);
+        return idx === -1 ? s : { ...s, order: idx };
+      });
+
+      setSections(reordered);
+
+      const toUpdate = reordered.filter((s) => s.group_id === groupId);
+      const updates = toUpdate.map((s) =>
+        supabase.from("sections").update({ order: s.order }).eq("id", s.id)
+      );
+
+      const results = await Promise.all(updates);
+      const failed = results.find((r) => r.error);
+      if (failed?.error) {
+        setSections(previous);
+        setError(failed.error.message);
+        return { error: failed.error.message };
+      }
+      return {};
     },
     [sections]
   );
@@ -123,5 +162,6 @@ export function useSections() {
     createSection,
     updateSection,
     deleteSection,
+    reorderSections,
   };
 }

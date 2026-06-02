@@ -1,11 +1,12 @@
 import { IconArrowLeft } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EditButton } from "./components/EditButton";
 import { Logo } from "./components/Logo";
 import { PageContent } from "./components/PageContent";
 import { Sidebar } from "./components/Sidebar";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { ToastProvider, useToast } from "./components/Toast";
 import { useGroups } from "./hooks/useGroups";
 import { useLinks } from "./hooks/useLinks";
 import { useSections } from "./hooks/useSections";
@@ -26,18 +27,31 @@ const pageTransition = {
   transition: { duration: 0.28, ease: "easeOut" as const },
 };
 
-function App() {
+function AppInner() {
+  const toast = useToast();
   const { theme, toggle } = useTheme();
   const { workspace, updateName: renameWorkspace } = useWorkspace();
-  const { groups, createGroup, renameGroup, deleteGroup } = useGroups();
-  const { sections, createSection, updateSection, deleteSection } =
-    useSections();
-  const { links, createLink, updateLink, deleteLink } = useLinks();
+  const { groups, error: groupsError, createGroup, renameGroup, deleteGroup, reorderGroups } = useGroups();
+  const { sections, error: sectionsError, createSection, updateSection, deleteSection, reorderSections } = useSections();
+  const { links, error: linksError, createLink, updateLink, deleteLink, reorderLinks } = useLinks();
 
-  const [view, setView] = useState<View>("launcher");
+  const [view, setView] = useState<View>("tree");
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [treeEditing, setTreeEditing] = useState(false);
+
+  // Surface Supabase errors as toasts
+  useEffect(() => {
+    if (groupsError) toast.error(groupsError);
+  }, [groupsError]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (sectionsError) toast.error(sectionsError);
+  }, [sectionsError]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (linksError) toast.error(linksError);
+  }, [linksError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeSection =
     sections.find((s) => s.id === activeSectionId) ?? null;
@@ -138,9 +152,11 @@ function App() {
                 onCreateGroup={createGroup}
                 onRenameGroup={renameGroup}
                 onDeleteGroup={deleteGroup}
+                onReorderGroups={reorderGroups}
                 onCreateSection={createSection}
                 onUpdateSection={(id, values) => updateSection(id, values)}
                 onDeleteSection={deleteSection}
+                onReorderSections={reorderSections}
               />
 
               <div className="flex flex-1 flex-col">
@@ -170,6 +186,7 @@ function App() {
                       onCreateLink={createLink}
                       onUpdateLink={updateLink}
                       onDeleteLink={deleteLink}
+                      onReorderLinks={reorderLinks}
                     />
                   </PageContent>
                 ) : (
@@ -197,6 +214,14 @@ function App() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
   );
 }
 

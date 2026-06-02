@@ -15,6 +15,8 @@ export type FlowQuestion = {
   options: FlowOption[];
 };
 
+export type CalcType = "antecipacao" | "acordo_cf";
+
 export type FlowResult = {
   id: string;
   type: "result";
@@ -24,6 +26,7 @@ export type FlowResult = {
   tone: "success" | "neutral" | "warning";
   multiplier?: number;
   multiplierLabel?: string;
+  calcType?: CalcType;
 };
 
 export type FlowNode = FlowQuestion | FlowResult;
@@ -44,6 +47,7 @@ export type CreateNodeInput =
       tone: Tone;
       multiplier?: number;
       multiplierLabel?: string;
+      calcType?: CalcType;
     };
 
 export type UpdateNodePatch = Partial<{
@@ -54,6 +58,7 @@ export type UpdateNodePatch = Partial<{
   tone: Tone;
   multiplier: number | null;
   multiplier_label: string | null;
+  calc_type: CalcType | null;
 }>;
 
 type MutationResult<T = unknown> = { error?: string } & T;
@@ -68,6 +73,7 @@ type NodeRow = {
   tone: Tone | null;
   multiplier: number | null;
   multiplier_label: string | null;
+  calc_type: CalcType | null;
   is_root: boolean;
 };
 
@@ -114,6 +120,7 @@ function buildNodes(
         tone: row.tone ?? "neutral",
         multiplier: row.multiplier ?? undefined,
         multiplierLabel: row.multiplier_label ?? undefined,
+        calcType: row.calc_type ?? undefined,
       };
     }
   }
@@ -231,6 +238,7 @@ export function useFlow() {
               tone: input.tone,
               multiplier: input.multiplier ?? null,
               multiplier_label: input.multiplierLabel?.trim() || null,
+              calc_type: input.calcType ?? null,
               is_root: false,
             });
 
