@@ -1,4 +1,3 @@
-import { IconArrowLeft } from "@tabler/icons-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { EditButton } from "./components/EditButton";
@@ -69,16 +68,6 @@ function AppInner() {
         {view !== "dashboard" ? (
           <div className="pointer-events-auto flex items-center gap-2">
             <Logo size={24} />
-            {view !== "launcher" ? (
-              <button
-                type="button"
-                onClick={goLauncher}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-text)]"
-              >
-                <IconArrowLeft size={14} stroke={2} />
-                Início
-              </button>
-            ) : null}
           </div>
         ) : (
           <div />
