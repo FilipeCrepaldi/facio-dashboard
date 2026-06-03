@@ -12,7 +12,6 @@ import {
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import type {
-  CalcType,
   FlowNode,
   Tone,
   useFlow,
@@ -345,14 +344,6 @@ function QuestionFields({
   );
 }
 
-type CalcMode = "none" | CalcType;
-
-const CALC_MODE_LABELS: Record<CalcMode, string> = {
-  none: "Sem cálculo",
-  antecipacao: "Desconto Antecipação",
-  acordo_cf: "Acordo CF",
-};
-
 function ResultFields({
   node,
   onUpdate,
@@ -360,18 +351,9 @@ function ResultFields({
   node: Extract<FlowNode, { type: "result" }>;
   onUpdate: (patch: Record<string, unknown>) => void;
 }) {
-  const [calcMode, setCalcMode] = useState<CalcMode>(
-    node.calcType ?? (node.multiplier !== undefined ? "antecipacao" : "none"),
+  const [hasMultiplier, setHasMultiplier] = useState(
+    node.multiplier !== undefined,
   );
-
-  const handleCalcModeChange = (mode: CalcMode) => {
-    setCalcMode(mode);
-    if (mode === "none") {
-      onUpdate({ multiplier: null, multiplier_label: null, calc_type: null });
-    } else {
-      onUpdate({ calc_type: mode });
-    }
-  };
 
   return (
     <div className="grid gap-3">
@@ -413,50 +395,24 @@ function ResultFields({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 rounded-md border border-dashed border-[var(--color-border)] p-3">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-            Tipo de cálculo
-          </span>
-          <p className="text-[10px] text-[var(--color-text-muted)]">
-            Exibe uma calculadora no card de resultado do fluxo.
-          </p>
-        </div>
-        <div className="flex flex-col gap-1">
-          {(["none", "antecipacao", "acordo_cf"] as const).map((mode) => (
-            <label
-              key={mode}
-              className="flex cursor-pointer items-start gap-2 rounded-md px-1.5 py-1 transition hover:bg-[var(--color-border)]"
-            >
-              <input
-                type="radio"
-                name={`calcMode-${node.id}`}
-                checked={calcMode === mode}
-                onChange={() => handleCalcModeChange(mode)}
-                className="mt-0.5 accent-[var(--color-facio-blue)]"
-              />
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[11px] font-medium text-[var(--color-text)]">
-                  {CALC_MODE_LABELS[mode]}
-                </span>
-                {mode === "antecipacao" && (
-                  <span className="text-[10px] text-[var(--color-text-muted)]">
-                    Desconto sobre o valor original da contratação (sem juros)
-                  </span>
-                )}
-                {mode === "acordo_cf" && (
-                  <span className="text-[10px] text-[var(--color-text-muted)]">
-                    Desconto sobre o valor em atraso com taxas e juros acumulados
-                  </span>
-                )}
-              </div>
-            </label>
-          ))}
-        </div>
-        {calcMode !== "none" ? (
-          <div className="grid grid-cols-2 gap-2 pt-1">
+      <div className="flex flex-col gap-2 rounded-md border border-dashed border-[var(--color-border)] p-3">
+        <label className="flex cursor-pointer items-center gap-2 text-[11px] font-medium text-[var(--color-text)]">
+          <input
+            type="checkbox"
+            checked={hasMultiplier}
+            onChange={(e) => {
+              setHasMultiplier(e.target.checked);
+              if (!e.target.checked) {
+                onUpdate({ multiplier: null, multiplier_label: null });
+              }
+            }}
+          />
+          Tem cálculo de desconto sobre o valor da contratação
+        </label>
+        {hasMultiplier ? (
+          <div className="grid grid-cols-2 gap-2">
             <TextField
-              label="Taxa de desconto (ex: 0.10 = 10%)"
+              label="Multiplicador (ex: 0.9)"
               defaultValue={node.multiplier?.toString() ?? ""}
               onCommit={(v) => {
                 const n = Number(v.replace(",", "."));
@@ -464,7 +420,7 @@ function ResultFields({
               }}
             />
             <TextField
-              label="Label do resultado (ex: 10% de desconto)"
+              label="Label exibido (ex: × 0,90)"
               defaultValue={node.multiplierLabel ?? ""}
               onCommit={(v) => onUpdate({ multiplier_label: v.trim() || null })}
             />
